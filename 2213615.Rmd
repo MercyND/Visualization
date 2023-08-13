@@ -1,0 +1,472 @@
+---
+title: "2213615 NDIDI MERCY"
+author: "MA304"
+date: "2023-04-17"
+output: html_document
+number_section: true
+theme: cerulean
+---
+
+{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```{r}
+#set working directory
+setwd("C:/Users/MERCY/Desktop/MA304")
+# Load the necessary libraries
+library(tidyverse)
+library(lubridate)
+library(leaflet)
+library(ggplot2)
+library(tidyr)
+library(ggmap)
+library(readr)
+library(dplyr)
+
+#read in the data and assign a new name
+Crime_data <- read_csv("37-00049_UOF-P_2016_prepped (1).csv")
+Crime_data <- Crime_data[-1,]
+
+glimpse(Crime_data) #glimpse data
+
+```
+
+## INTRODUCTION
+ The Dallas Police Department released a dataset that records all incidents of policy activity in 2016. The dataset "37-000049 UOF-P 2016 prepped.csv" provides a detailed record of each incident including the date, time, location and outcome on the use of force incidents by police officers in Dallas, Texas. 
+ 
+ Data is used by law enforcement agencies to guide judgements and discover trends of criminal activities in their communities. Crime data analysis can reveal information on the types of crimes that are occuring, the demographics of both victims and perpetrators and the success of policing efforts. In this research we examine a dataset of crime reports from a significant metropolis in Dallas, Texas. 
+ 
+ The dataset contains information on both the officers and subjects as well as their races and genders. It also includes information on the police and persons involved, as well as the location, time and reason of the occurence. The beats where officers experiences more incidents, the types of force used by the officers on the subjects as well as the injuries contained by both the officers and the subjects was also evaluated.
+ 
+ This report aims to analyse the use of force by police officers on subjects, identify patters of force used and investigate the effects of race and gender on these incidents as well as give a comprehensive data visualization on the policing dataset from Dallas, Texas in 2016.
+ 
+ Through data visualization, we hope to identify trends and patterns in the policing dataset and gain a deeper understanding of police activity in Dallas, Texas in 2016 which can be used to inform policing decisions and strategies for crime prevention, with the ultimate goal of creating safer communities for all residents.
+ 
+## METHODOLOGY
+### Data Cleaning
+In carrying out a full data visualization, it is essential we clean the data. We can achieve this by ensuring we check, correct and remove inconsistencies that may be in the data to avoid anything that may affect our data accuracy on the analysis we wish to carry out on the data. Some reasons for cleaning data can be to remove missing values, outliers, Inconsistent data, Data type mismatch,duplicates etc. 
+
+We had a glimpse on the dataset and realized all the variables were characters but based on the available data provided this representation is incorrect so we addressed this by changing the categorical variables where necessary in the data. 
+
+
+```{r}
+# Convert variable classes according to appropriate types
+Crime_data <- Crime_data %>%
+  mutate(INCIDENT_DATE =lubridate::mdy(Crime_data$INCIDENT_DATE),
+         INCIDENT_TIME = as.POSIXct(INCIDENT_TIME, format = "%H:%M:%S"),
+         OFFICER_ID = as.factor(OFFICER_ID),
+         OFFICER_GENDER = as.factor(OFFICER_GENDER),
+         OFFICER_RACE = as.factor(OFFICER_RACE),
+         OFFICER_HIRE_DATE = parse_date_time(OFFICER_HIRE_DATE, orders = c("mdy", "ymd", "dmy")),
+         OFFICER_YEARS_ON_FORCE = as.integer(OFFICER_YEARS_ON_FORCE),
+         OFFICER_YEARS_ON_FORCE = as.integer(OFFICER_YEARS_ON_FORCE),
+         OFFICER_INJURY = as.factor(OFFICER_INJURY),
+         OFFICER_INJURY_TYPE = as.factor(OFFICER_INJURY_TYPE),
+         OFFICER_HOSPITALIZATION = as.factor(OFFICER_HOSPITALIZATION),
+         SUBJECT_ID = as.factor(SUBJECT_ID),
+         SUBJECT_RACE = as.factor(SUBJECT_RACE),
+         SUBJECT_GENDER = as.factor(SUBJECT_GENDER),
+         SUBJECT_INJURY = as.factor(SUBJECT_INJURY),
+         SUBJECT_INJURY_TYPE = as.factor(SUBJECT_INJURY_TYPE),
+         SUBJECT_WAS_ARRESTED = as.factor(SUBJECT_WAS_ARRESTED),
+         SUBJECT_DESCRIPTION = as.factor(SUBJECT_DESCRIPTION),
+         SUBJECT_OFFENSE = as.factor(SUBJECT_OFFENSE),
+         REPORTING_AREA = as.factor(REPORTING_AREA),
+         BEAT = as.factor(BEAT),
+         SECTOR = as.factor(SECTOR),
+         DIVISION = as.factor(DIVISION),
+         LOCATION_DISTRICT = as.factor(LOCATION_DISTRICT),
+         LOCATION_LATITUDE = as.numeric(LOCATION_LATITUDE),
+         LOCATION_LONGITUDE = as.numeric(LOCATION_LONGITUDE),
+         INCIDENT_REASON = as.factor(INCIDENT_REASON),
+         TYPE_OF_FORCE_USED1 = as.factor(TYPE_OF_FORCE_USED1))
+
+```
+
+### Data Exploration
+
+The exploratory data analysis (EDA) can help us to understand the patterns and relationships present in the Crime_data dataset and inform us on further analysis and modeling to gain insight into the dataset. 
+
+```{r}
+#Check the structure and summary of the dataset
+str(Crime_data)
+summary(Crime_data)
+
+#Check for missing values
+sum(is.na(Crime_data))
+```
+
+
+However, after carefully looking at the data we observed that the number of NA's was 18424 in the dataset which is very significant and removing them from the data can alter the data because we don't know what observation we might exclude that might be important for other reasons and somewhat make the data biased because that way we would not be able to have a full visualization of what to analyse from the data. So instead of doing this we would handle each NA independently when trying to explore the data on the task its needed for.
+ 
+ 
+### Data Visualization
+
+To get a full data visualization of the policing Crime_data dataset of Dallas, Texas, we can visualize the locations of crimes in the dataset using a map for a deep insight of all that is embedded in the data so we can have a detailed analysis of the Dallas policing dataset so as to explore and potentially reveal patterns or hot-spots of criminal activity in different parts of the city.
+
+By visualizing, we are able to get useful information for identifying areas that may require increased police presence or other interventions to reduce crime. The map is an interactive one that shows the location district value for each crime location which could potentially be used to identify any patterns or trends in criminal activity across different districts of the city. 
+
+Through the data, further analysis such as comparing crime rates, types of crime across different districts, the most occuring time of incidents etc can be further looked into
+
+```{r}
+# Filter data to keep only rows with non-missing LOCATION_LATITUDE and LOCATION_LONGITUDE values
+filtered_data <- Crime_data %>%
+  filter(!is.na(LOCATION_LATITUDE) & !is.na(LOCATION_LONGITUDE))
+
+# Convert LOCATION_LATITUDE and LOCATION_LONGITUDE
+filtered_data$LOCATION_LATITUDE <- as.numeric(filtered_data$LOCATION_LATITUDE)
+filtered_data$LOCATION_LONGITUDE <- as.numeric(filtered_data$LOCATION_LONGITUDE)
+
+leaflet(filtered_data) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    ~LOCATION_LONGITUDE,
+    ~LOCATION_LATITUDE,
+    label = ~LOCATION_DISTRICT, # Add label option to display the location name
+    labelOptions = labelOptions(noHide = FALSE, direction = "auto"), # Customizing label options
+    popup = ~LOCATION_DISTRICT,
+    radius = 4, # Adjust the radius of the circle markers
+    color = "blue",
+    stroke = FALSE,
+    fillOpacity = 0.5 # Adjust the opacity of the circle markers
+  )
+```
+
+
+ Each division had various number of crimes with different divisions recording a higher crime rate. We can quickly distinguish which division have the greatest and lowest crime rates by visualizing the data in bar plot below. This data can help law enforcement organizations distribute resources more effectively and prioritise their efforts in high-crime areas.
+```{r}
+#A representation of what division crimes occurred and how often it did in those divisions
+Crime_data %>%
+  count(DIVISION) %>%
+  ggplot(aes(x = DIVISION, y = n)) +
+  geom_col(stat = "identity", fill= "brown") +
+  ggtitle("Number of Crimes by Division") +
+  xlab("Division") +
+  ylab("Number of Crimes") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+To show the distribution of crime by sector, we would plot a histogram to visualize the frequency of crimes in each sector using bars. The height of each bar represents the number of crimes in that sector and this can help us to know the areas we can direct resources to as well as inform law enforcement agents on areas to implement targeted strategies to reduce crime in high-risk sectors.
+
+```{r fig.width=12, fig.height=7}
+# Create a histogram of crimes by sector
+Crime_data %>%
+  ggplot(aes(x = SECTOR)) +
+  geom_histogram(stat = "count", fill = "navy", alpha = 1.5) +
+  ggtitle("Histogram of Crimes by Sector") +
+  xlab("Sector") +
+  ylab("Count") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+In the bid to get a clearer insight on the Crime_data dataset, we used markers to display locations so as to get more interactive data which aimed to give us a clearer picture on the Incident time, Incident Date, Subject race, Subject gender, and reason for force. The map is centered on the longitude and latitude coordinates of Dallas and the map tells us the geographical distribution of crime incidents in the Crime_data dataset and provides some basic information about each incident when we click on the markers.
+
+```{r}
+# create an object leaflet map
+Crime_map <- leaflet() %>%
+  setView(lng = -96.7969, lat = 32.7767, zoom = 11)
+
+# Create for each data point popup text
+popup_text <- paste("Incident Date: ", format(Crime_data$INCIDENT_DATE, "%m/%d/%Y"),
+                    "<br>Incident Time: ", as.character(Crime_data$INCIDENT_TIME),
+                    "<br>Subject Race: ", as.character(Crime_data$SUBJECT_RACE),
+                    "<br>Subject Gender: ", as.character(Crime_data$SUBJECT_GENDER),
+                    "<br>Reason for Force: ", as.character(Crime_data$INCIDENT_REASON))
+
+# Create the interactive map
+crimedatamap <- leaflet(Crime_data) %>%
+  addTiles() %>%
+  addMarkers(~LOCATION_LONGITUDE, ~LOCATION_LATITUDE, popup = popup_text)
+
+crimedatamap 
+```
+
+We looked into the data for better understanding and got an insight on the reason for use of force and how many times there was weapon display and observed that times of arrest had more situations where weapons was displayed.
+
+```{r}
+# Table of reason for use of force
+Crime_data %>%
+  select(INCIDENT_REASON, REASON_FOR_FORCE) %>%
+  table()
+```
+
+It was observed when having a thorough look at the data that the ocurence of incidents in a particular beat officers were posted to were more than the other and we gave a physican representation of the top 10 beats we observed with more incidents. Beat area 115 had over twenty number of incidents, beat area 614 had thirty number of incidents etc and we can get more information from the bar graph below. 
+
+```{r}
+#Beats where officers were posted to and the information of top 10 beats with more occurrence based on officers position
+
+# Create a table of the top 10 beat areas with the highest number of incidents
+top_beats <- Crime_data %>%
+  count(BEAT, sort = TRUE) %>%
+  top_n(10)
+#table(top_beats)
+
+# Create a bar plot of the top 10 beat areas with the highest number of incidents
+ggplot(top_beats, aes(x = reorder(BEAT, n), y = n)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  labs(x = "Beat Area", y = "Number of Incidents") +
+  ggtitle("Top 10 Beat Areas with the Highest Number of Incidents")
+```
+
+ While analyzing the Dallas policing dataset, we went further to do a survey on the race of the officers who were involved in this data and the number of incidents by the officers race and gender. Here we observed that the races present were the American Ind, Asian, Black, Hispanic, Other and the white of which more of the male officers recorded more number of incidents than the female.
+ 
+ Also, we were able to gather from the data that the male White officers recorded more number of incidents than any other race and the female white Officers recorded more numbers of incidents than any other race of the same gender.Two seperate bar plots to represent our findings on the number of incidents by race and gender of the officers were created. 
+
+Additionally we created a table which helps us to visualize a definite count on the number of incidents by race and gender of the officer. We were able to gather this finding from the data.
+
+```{r}
+barplot
+# Count the number of incidents by race of the officer
+Officer_summary <- Crime_data %>%
+  group_by(OFFICER_RACE) %>%
+  summarise(num_incidents = n()) %>%
+  arrange(desc(num_incidents))
+Officer_summary
+```
+
+```{r}
+# Create a bar plot of incident count by officer race
+ggplot(Officer_summary, aes(x = OFFICER_RACE, y = num_incidents)) +
+  geom_bar(stat = "identity", fill = c("maroon", "darkgreen","blue", "navy", "purple", "cornflowerblue")) +
+  ggtitle("Number of Incidents by Officer Race") +
+  xlab("Officer Race") +
+  ylab("Number of Incidents")
+```
+
+```{r}
+# Create a bar plot of incidents by officer gender
+OFFICER_GENDER <- Crime_data %>%
+  group_by(OFFICER_GENDER) %>%
+  summarize(count = n()) %>%
+  ungroup()
+OFFICER_GENDER
+```
+
+```{r}
+ggplot(OFFICER_GENDER, aes(x = OFFICER_GENDER, y = count)) +
+  geom_bar(stat = "identity", fill = c("red","navy" )) +
+  labs(x = "Officer Gender", y = "Number of Incidents") +
+  ggtitle("Bar Plot of Incidents by Officer Gender")
+```
+
+We also created a summary table to analyse the number of incidents by officer race for a better understanding of the data.
+
+```{r}
+# Create a summary table of the number of incidents by officer race
+incident_counts <- Crime_data %>% group_by(OFFICER_RACE) %>% summarize(Count=n())
+incident_counts
+```
+
+Here we create visualisation of the dataset to present the data in an easily digestible format using various approaches for analysing more about the Policing Dataset from Dallas, Texas.
+
+The boxplot depicts the distribution of years on the force for officers in the Dallas Police Department classified by race. This visualisation makes use of data from the Crime_data dataset. It could be used to identify areas where more officer recruitment and training may be required to guarantee diversity and representation in the police force.
+
+The officers' races are represented on the x-axis, and their years on the force are represented on the y-axis and used the box to indicate the interquartile range of values between 25th and 75th percentile. The horizontal line inside the box represents the median value. The whiskers extending from the box represent the minimum and maximum values from the lower and upper quartiles that are within 1.5 times the IQR.
+
+Outliers are data points that fall outside of this range and are represented as solitary points outside of the whiskers.
+
+According to the boxplot, Asian officers have the longest median years on the force, followed by White officers. Officers who identify as Black or Hispanic have less years on the police than Asian or White officers. The interquartile ranges for all categories are comparable, indicating that there is no substantial difference in the distribution of years on the force among races.
+
+```{r}
+# Create a box plot of the distribution of officer years on force by officer race
+ggplot(Crime_data, aes(x = OFFICER_RACE, y = as.numeric(OFFICER_YEARS_ON_FORCE))) +
+  geom_boxplot(fill = "purple") +
+  labs(x = "Officer Race", y = "Years on Force") +
+  ggtitle("Distribution of Officer Years on Force by Officer Race")
+```
+
+We analysed to see if there are any differences in the average years on force for officers based on their races and we discovered that on average, officers who identify as "White" and "Asian" have been on the force for longer periods compared to officers who identify as "Black" and "Hispanic". This difference in years on force based on race is an important observation that may be useful in understanding potential disparities in experience and advancement opportunities within the police force.
+
+We discovered that across all the races, the male officers were more than the female officers and this information helps in identifying areas that needs improvements in police recruitment in the aspect of diversity
+
+```{r}
+#Information on the race of officers and their years on force
+Crime_data %>%
+  group_by(OFFICER_RACE) %>%
+  summarize(mean_years_on_force = mean(OFFICER_YEARS_ON_FORCE)) %>%
+  ggplot(aes(x = OFFICER_RACE, y = mean_years_on_force, fill = OFFICER_RACE)) +
+  geom_col() +
+  ggtitle("Average Years on Force by Officer Race") +
+  xlab("Officer Race") +
+  ylab("Average Years on Force") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+#The gender representation or report on the number of officers gender based on their races
+Crime_data %>%
+  group_by(OFFICER_RACE, OFFICER_GENDER) %>%
+  count() %>%
+  ggplot(aes(x = OFFICER_RACE, y = n, fill = OFFICER_GENDER)) +
+  geom_col(position = "dodge") +
+  ggtitle("Number of Officers by Race and Gender") +
+  xlab("Officer Race") +
+  ylab("Number of Officers") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+To visualise the geographical distribution of the incidents in the Crime_data dataset, we did a scatter plot represents the incidents' locations as individual points on a graph showing its longitude and latitude.
+
+The plot can reveal patterns or trends in the location of the occurences over timr, as well as the concentration of incidents in specific places which could be of help to us in finding if the data we want to investigate has outliers.
+
+The plot can help discover trends or clusters of incidents and provides ideas for further analysis and future investigatons. Overall, the scatter plot provides a way to visually explore the data and learn about the nature of  the incidents that occured in Dallas, Texas
+
+```{r}
+# Create an incident scatter plot of the latitude and longitude
+scatter_plot <- ggplot(Crime_data, aes(x = LOCATION_LONGITUDE, y = LOCATION_LATITUDE)) +
+  geom_point(alpha = 0.2, color = "red") +
+  labs(title = "Location of incidents", x = "Longitude", y = "Latitude")
+
+# Print the scatter plot
+print(scatter_plot)
+```
+
+
+Gathering the above information from the above data, we went ahead to carry out same observation for the race of the subjects who were involved in this incident from the given dataset based on the report. Here we observed that the races present were also the American Ind, Asian, Black, Hispanic, Other and the white of which the black male subjects recorded more number of incidents than any other gender/race.
+
+```{r}
+# Bar plot of number of incidents by subject race and gender
+Crime_data %>%
+  group_by(SUBJECT_RACE, SUBJECT_GENDER) %>%
+  summarise(Incidents = n()) %>%
+  ggplot(aes(x = SUBJECT_RACE, y = Incidents, fill = SUBJECT_GENDER)) +
+  geom_col(position = "dodge") +
+  labs(title = "Number of Incidents by Subject Race and Gender", x = "Subject Race", y = "Number of Incidents")
+```
+
+We visualized how frequent incidents occured and the time it occured so as to identify patterns in criminal activity to help in resource allocation by law enforcement agencies.  For example if there is a spike in events in at a certain time of the day, such as late at nights or early morning, law enforcement agencies may want to allocate more resources to patrol those areas during those times. 
+
+Additionally, seasonal variations in the distribution of incidents can help influence crime prevention initiatives. Based on the Crime_data we analysed, the dataset shows the distribution of the incidents in the Crime_data dataset. The incident time depicts the frequency distribution of incidents by time of the day.
+
+To explore how the number of incidents changed overtime, time series analysis was done on the Crime_data dataset. The time series plot of the number of incidents over time shows that there is a general trend of decreasing incidents over time, with some seasonal flunctuations. It shows the raw count of incidents on each day without any smoothing or trend analysis applied. It allows us to see the raw flunctuations and trends in the data, but it can be very difficult to interprete due to the high variability in the counts on certain days, but it may not be easy to see the underlying trends or pattern in the data. 
+
+```{r}
+# Create a time series plot of the number of incidents over time
+Crime_data$INCIDENT_DATE <- as.Date(Crime_data$INCIDENT_DATE, "%m/%d/%Y")
+incident_time_series <- Crime_data %>% group_by(INCIDENT_DATE) %>% summarize(Count=n())
+ggplot(incident_time_series, aes(INCIDENT_DATE, Count)) +
+  geom_line(color="steelblue") +
+  ggtitle("Number of Incidents Over Time") +
+  xlab("Date") +
+  ylab("Number of Incidents") +
+  theme_bw()
+```
+
+The smoothened time series plot of incidents counts shows the pattern and trends of incidents over time with less noise and variablilty while accounting for any noise or randomness in the data. It confirms this trend by fitting a smoother curve to the data, which shows that the number of incidents has been decreasing overtime with some flunctuations. 
+
+This information can be useful for law enforcements officials in identifying areas where crime rates may be increasing and implementing measures to address the underlying causes of crimes. Additionally, it can provide insights into the effectivenesss of crime prevention and reduction efforts over time.
+
+```{r}
+# Create a time series plot of the number of incidents over time
+Crime_data$INCIDENT_DATE <- as.Date(Crime_data$INCIDENT_DATE, "%m/%d/%Y")
+incident_time_series <- Crime_data %>% group_by(INCIDENT_DATE) %>% summarize(Count=n())
+ggplot(incident_time_series, aes(INCIDENT_DATE, Count)) +
+  geom_line(color="steelblue") +
+  geom_smooth(method="auto", se=FALSE) +
+  ggtitle("Number of Incidents Over Time") +
+  xlab("Date") +
+  ylab("Number of Incidents") +
+  theme_bw()
+
+
+# Create time series plot of incident counts
+ggplot(incident_time_series, aes(INCIDENT_DATE, Count)) +
+  geom_smooth(color = "steelblue") +
+  ggtitle("Number of Incidents Over Time") +
+  xlab("Date") +
+  ylab("Number of Incidents") +
+  theme_bw()
+```
+
+
+To get insight into the types of people who were involved in incidents reported in the Crime_data dataset, we used a piechart for subject descriptions. From the chart, a significant number of incidents in the dataset involves some sort of suspected criminal activity and this data provides a high level overview of the types of individuals who were involved in incidents reported in the Crime_data dataset, which can be helpful in identifying patterns or trends in the data. 
+
+This chart suggest that the police are often encountering subjects whose identity or characteristics are unknown and amongst others, understanding these patterns could help guide policy decisions around police training and protocols for dealing with unknown subjects.
+
+```{r}
+# Create data for pie chart
+description_counts <- Crime_data %>%
+  count(SUBJECT_DESCRIPTION) %>%
+  rename(Description = SUBJECT_DESCRIPTION, Freq = n)
+
+# Pie chart of subject description
+ggplot(description_counts, aes(x="", y=Freq, fill=Description)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  ggtitle("Subject Description") +
+  labs(fill="Description") +
+  theme_void()
+```
+
+Next we examined the race of subjects who were arrested and the type of force used on each race on the Crime_data dataset which provided us with some interesting insight into the police force dataset of Dallas, Texas in 2016 and how they operated.
+
+The data shows there was disparity in the use of force against different races  and suggested that blacks got more arrest.
+
+```{r fig.width=10, fig.height=6}
+#The race of subjects who got arrested the most by officers and the type of force used on the subjects
+# Race of subjects who got arrested the most by officers
+subjects_by_race <- Crime_data %>%
+  group_by(SUBJECT_RACE) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n))
+subjects_by_race
+
+# Type of force used on subjects
+force_by_type <- Crime_data %>%
+  group_by(TYPE_OF_FORCE_USED1) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n))
+force_by_type 
+# Combine the two data frames
+arrest_by_race_and_force <- Crime_data %>%
+  group_by(SUBJECT_RACE, TYPE_OF_FORCE_USED1) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n))
+arrest_by_race_and_force
+
+View(Crime_data$INCIDENT_DATE)
+
+# Plot the results
+ggplot(arrest_by_race_and_force, aes(x = SUBJECT_RACE, y = n, fill = TYPE_OF_FORCE_USED1)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Type of Force Used on Subjects by Race",
+       x = "Subject Race",
+       y = "Number of Incidents") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+## STATEMENT OF LIMITATION
+
+Here are some limitations of the Crime_data dataset:
+
+1. Incomplete data: The dataset may not contain information on all incidents of police use of force, as not all incidents may have been reported or recorded. This could potentially lead to biased analysis or incomplete conclusion.
+
+2. Missing variables: The dataset is missing some variables that could be useful for analysis such as the officers years of experience, the location of the incident and suspects criminal history.
+
+3. Inadequate geographical scope: The dataset only covered just one city and may not be a representative of the police use of force in other cities.
+
+4. Data quality: The dataset may contain errors, missing values or inconsistencies, which could affect the reliability of any analysis drawn from it.
+
+5. Bias: The dataset didnt talk about where force wasnt used. It only included where incidents experienced the use of police us and this could skew the results of any analysis or generalization made based on the dataset potentially.
+
+## SUMMARY
+
+We observed some findings in the data which includes:
+
+1. Crimes are not evenly distributed across divisions. 
+
+2. The majority  of incidents involved males, with females comprising a small percentage.
+
+3. There is a disproportionate representation of certain racial groups in the dataset. Specifically, black and Hispanic individuals were overpresented in the dataset compared to their population percentages in the country.
+
+4. The majority of officers involved in incidents were male and white.
+
+5. The use of force varied across different races, with black individuals being more likely to experience force.
+
+6. The dataset has missing data, and potential biases which limited information on the circumstances surrounding each incident.
+
+These findings suggest that the dataset contains discrepancies and biases. There are differences in the distribution of crimes across divisions, the presence of particular racial groupings in the dataset, and the use of force.
+
+To overcome this discrepancies and biases, it is recommended that additional research be made to understand better the underlying factors contributing to these incidents so as to undercover the core causes of this discrepancies ensuring that suitable policies and training programs be implemented. It is also suggested that the police force be more diverse and that the community relations be improved in order to foster trust and alleviate tension. 
+
+Futhermore, it is important to ensure that data collection and analysis is ongoing and systematic, to enable the continuous monitoring and improvement of policing practices.
